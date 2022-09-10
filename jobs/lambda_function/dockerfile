@@ -5,4 +5,4 @@ WORKDIR /var/task
 COPY app.py requirements.txt .
 RUN pip3 install -r requirements.txt --target .
 
-CMD ["app.handler"]
+CMD ["app.main"]

@@ -14,7 +14,10 @@ def get_jobs():
     return pd.read_parquet(f)
 
 
-def handler(event, context=None):
+jobs = get_jobs()
+
+
+def main(event, context=None):
     params = json.loads(event['body'])
     status_code = 200
     body = get_data(params)
@@ -38,38 +41,36 @@ def get_data(params):
 
 
 def grouped_data(params):
-    group = params.get('by')
-    dict_item_results = (get_jobs()
-        .groupby(group)['id']
+    results = (jobs
+        .groupby(params['by'])['id']
         .count()
         .sort_values(ascending=False)
         .iloc[: 25]
         .to_dict()
-        .items()
     )
-    return [list(e) for e in dict_item_results]
+    return [[k, results[k]] for k in results]
 
 
 def periodic_data(params):
-    jobs = get_jobs()
     convert_period = {
         'day': seconds(1),
         'week': seconds(7)
     }
     freq = convert_period[params['period']]
+    filtered_jobs = jobs
     try:
         for key, value in params['filters'].items():
-            jobs = jobs[jobs[key] == value]
+            filtered_jobs = filtered_jobs[filtered_jobs[key] == value]
     except:
-        pass
+        filtered_jobs = jobs
 
     interval_index = pd.interval_range(
-        start=jobs['time'].iloc[-1] - seconds(30),  
+        start=filtered_jobs['time'].iloc[-1] - seconds(30),  
         periods=seconds(30) // freq + 1,
         freq=freq,
         closed='right'
     )
-    out = pd.cut(jobs['time'], interval_index)
+    out = pd.cut(filtered_jobs['time'], interval_index)
     counts = out.groupby(out).count()
     return list(zip(
         interval_index.left,
