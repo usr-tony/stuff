@@ -80,8 +80,8 @@ def Page(job_id, remote_cur=None):
         'company': job['advertiser']['description'],
         'nation': job['locationHierarchy']['nation'],
         'state': job['locationHierarchy']['state'],
-        'city': job['locationHierarchy']['city'],
-        'area': job['locationHierarchy']['area'],
+        'city': job['jobLocation'],
+        'area': job['jobArea'],
         'suburb': job['locationHierarchy']['suburb'],
         'sector_id': sector_id,
         'sector': sector, 
@@ -97,10 +97,10 @@ def Page(job_id, remote_cur=None):
             [output[o] for o in output]
         )
 
-    out = pd.DataFrame([output])
-    to_local_db(out.drop(columns=['details']), 'jobs')
-    to_local_db(out[['id', 'details']], 'details')
-    print(list(output.items())[:4])
+    out_df = pd.DataFrame([output])
+    to_local_db(out_df.drop(columns=['details']), 'jobs')
+    to_local_db(out_df[['id', 'details']], 'details')
+    print(job_id, output['title'], output['company'], output['area'], output['city'])
         
 
 def to_local_db(df, table='jobs'):
@@ -115,4 +115,3 @@ def find_largest_job_id(cur):
         job_id = int(job_id)
 
     return job_id
-
