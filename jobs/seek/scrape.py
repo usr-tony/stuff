@@ -58,22 +58,10 @@ def Page(job_id, remote_cur=None):
     process = subprocess.run(['node', './seek/parse.js', f'({object})'], stdout=subprocess.PIPE)
     data = json.loads(process.stdout)
     job = data['jobdetails']['result']
-    sector = job.get('jobClassification')
-    if not sector:
-        sector = job['classification']['description']
-
-    sector_id = job.get('jobClassificationId')
-    if not sector_id:
-        sector_id = job['classification']['id']
-
-    industry = job.get('jobSubClassification')
-    if not industry:
-        industry = job['subClassification']['description']
-
-    industry_id = job.get('jobSubClassificationId')
-    if not industry_id:
-        industry_id = job['subClassification']['id']
- 
+    sector = job.get('jobClassification') or job['classification']['description']
+    sector_id = job.get('jobClassificationId') or job['classification']['id']
+    industry = job.get('jobSubClassification') or job['subClassification']['description']
+    industry_id = job.get('jobSubClassificationId') or job['subClassification']['id']
     output = {
         'id': job_id,
         'title': job['title'],
@@ -86,7 +74,7 @@ def Page(job_id, remote_cur=None):
         'sector_id': sector_id,
         'sector': sector, 
         'industry_id': industry_id,
-        'industry': industry,
+        'industry': industry,   
         'work_type': job['workType'],
         'details': job['jobAdDetails'],
         'time': time()
@@ -100,7 +88,7 @@ def Page(job_id, remote_cur=None):
     out_df = pd.DataFrame([output])
     to_local_db(out_df.drop(columns=['details']), 'jobs')
     to_local_db(out_df[['id', 'details']], 'details')
-    print(job_id, output['title'], output['company'], output['area'], output['city'])
+    print(job_id, sector, industry)
         
 
 def to_local_db(df, table='jobs'):
