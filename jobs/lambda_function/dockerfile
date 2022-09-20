@@ -1,17 +1,4 @@
-FROM scratch
-ADD x86_64/38c652023ccbf72e7e01e619085b37b498f8afbc2b1bbf84e63fb3418c2b06af.tar.xz /
-ADD x86_64/3914a7163c98936e69073fdb43357b9729e2fe09c3ddd26bff851ee2299e51fa.tar.xz /
-ADD x86_64/46cdb715d1989a6a525f370472185df29ef5113b144ba7f898d3ea3e0bba6e20.tar.xz /
-ADD x86_64/5523de908abf4dcb33baf20466bf924baec4fb40a9ca45da0b4993ee70d92b86.tar.xz /
-ADD x86_64/8eb6f7e7e0067a6e5b3cf2b7ea4cf6c9e90b18a70200dd3628415110bf3709e8.tar.xz /
-ADD x86_64/97dd7725ed9c6fa29abfa7da8bd071b133a4386ae9f4b559596f9f09df2ec71a.tar.xz /
-
-ENV LANG=en_US.UTF-8
-ENV TZ=:/etc/localtime
-ENV PATH=/var/lang/bin:/usr/local/bin:/usr/bin/:/bin:/opt/bin
-ENV LD_LIBRARY_PATH=/var/lang/lib:/lib64:/usr/lib64:/var/runtime:/var/runtime/lib:/var/task:/var/task/lib:/opt/lib
-ENV LAMBDA_TASK_ROOT=/var/task
-ENV LAMBDA_RUNTIME_DIR=/var/runtime
+FROM public.ecr.aws/lambda/python:3.9-arm64
 
 WORKDIR /var/task
 
