@@ -1,4 +1,3 @@
-
 import json
 import boto3
 import io
@@ -12,9 +11,6 @@ def get_jobs():
     s3.download_fileobj(Fileobj=f, Key='jobs.parquet', Bucket='jobs--001')
     f.seek(0)
     return pd.read_parquet(f)
-
-
-jobs = get_jobs()
 
 
 def main(event, context=None):
@@ -41,7 +37,7 @@ def get_data(params):
 
 
 def grouped_data(params):
-    results = (jobs
+    results = (get_jobs()
         .groupby(params['by'])['id']
         .count()
         .sort_values(ascending=False)
@@ -57,6 +53,7 @@ def periodic_data(params):
         'week': seconds(7)
     }
     freq = convert_period[params['period']]
+    jobs = get_jobs()
     filtered_jobs = jobs
     try:
         for key, value in params['filters'].items():
