@@ -65,7 +65,7 @@ export function Experience(props) {
 function Teleresult(props) {
     return (
         <Typography variant="body2">
-            <b>Fullstack Software Developer</b>
+            <b>Software Developer</b>
             <br />
             <i>Teleresult</i>
             , Sydney NSW
