@@ -15,7 +15,7 @@ export const Jobs = () => ProjectTile({
     description: (
         <ul style={{position: 'relative', left: '-1rem'}}>
             <li>Scrapes jobs automatically on seek.com.au</li>
-            <li>Visualises and filters jobs based on various criteria</li>
+            <li>Filters and visualises jobs</li>
             <li>Hosted on AWS</li>
         </ul>
     ),
