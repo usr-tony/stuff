@@ -1,8 +1,8 @@
-cd /Users/tony/programming/profile/dist
 . ~/.nvm/nvm.sh
 nvm use 18
 node --version
 npm run build
+cd ./dist
 git init
 git add -A
 git commit -am 'rebuild'
