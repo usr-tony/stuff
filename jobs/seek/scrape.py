@@ -1,14 +1,11 @@
-#!/Users/tony/miniconda3/envs/jobs/bin/python
 import requests
 from bs4 import BeautifulSoup
-from time import sleep, time
-from random import random
+from time import time
 from . import database
 from .headers import headers
 import subprocess
 import json
 import re
-import sqlite3
 import pandas as pd
 
 
@@ -30,7 +27,6 @@ def scrape(job_id=None): # this id may not be relevant
         if consec_errors > 500:
             break
             
-        sleep(random()/10)
         con.commit()
     
     con.commit()

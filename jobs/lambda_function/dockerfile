@@ -6,3 +6,144 @@ COPY app.py requirements.txt .
 RUN pip3 install -r requirements.txt --target .
 
 CMD ["app.main"]
+
+
+import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
+
+const style = {
+  table: {
+    borderCollapse: 'collapse'
+  },
+  tableCell: {
+    border: '1px solid gray',
+    margin: 0,
+    padding: '5px 10px',
+    width: 'max-content',
+    minWidth: '150px'
+  },
+  form: {
+    container: {
+      padding: '20px',
+      border: '1px solid #F0F8FF',
+      borderRadius: '15px',
+      width: 'max-content',
+      marginBottom: '40px'
+    },
+    inputs: {
+      marginBottom: '5px'
+    },
+    submitBtn: {
+      marginTop: '10px',
+      padding: '10px 15px',
+      border:'none',
+      backgroundColor: 'lightseagreen',
+      fontSize: '14px',
+      borderRadius: '5px'
+    }
+  }
+}
+
+function PhoneBookForm({ setForm }) {
+  const [inputs, setInputs] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+  })
+
+  function submit(e) {
+    e.preventDefault()
+    setForm((state) => {
+      return state.concat(inputs).sort(cmp)
+    })
+  }
+
+  function cmp(a, b) {
+    return a.lastName > b.lastName
+  }
+  return (
+    <form onSubmit={submit} style={style.form.container}>
+      <label>First name:</label>
+      <br />
+      <input 
+        style={style.form.inputs}
+        value={inputs.firstName}
+        onChange={(e, v) => setInputs((state) => ({...state, firstName: e.target.value}))}
+        className='userFirstname'
+        name='userFirstname' 
+        type='text'
+      />
+      <br/>
+      <label>Last name:</label>
+      <br />
+      <input 
+        style={style.form.inputs}
+        value={inputs.lastName}
+        onChange={(e, v) => setInputs((state) => ({...state, lastName: e.target.value}))}
+        className='userLastname'
+        name='userLastname' 
+        type='text' 
+      />
+      <br />
+      <label>Phone:</label>
+      <br />
+      <input
+        style={style.form.inputs}
+        value={inputs.phone}
+        onChange={(e, v) => setInputs((state) => ({...state, phone: e.target.value}))}
+        className='userPhone' 
+        name='userPhone' 
+        type='text'
+      />
+      <br/>
+      <input 
+        style={style.form.submitBtn} 
+        className='submitButton'
+        type='submit' 
+        value='Add User' 
+      />
+    </form>
+  )
+}
+
+function InformationTable(props) {
+  return (
+    <table style={style.table} className='informationTable'>
+      <thead> 
+        <tr>
+          <th style={style.tableCell}>First name</th>
+          <th style={style.tableCell}>Last name</th>
+          <th style={style.tableCell}>Phone</th>
+        </tr>
+      </thead>
+      <tbody>
+        {props.form.map((row, i) => (
+          <tr key={i}>
+            <td>{row.firstName}</td>
+            <td>{row.lastName}</td>
+            <td>{row.phone}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function Application(props) {
+  const [form, setForm] = useState([{
+    firstName: 'Coder',
+    lastName: 'Byte',
+    phone: '8885559999'
+  }])
+  return (
+    <section>
+      <PhoneBookForm setForm={setForm} />
+      <InformationTable form={form} />
+    </section>
+  );
+}
+
+ReactDOM.render(
+  <Application />,
+  document.getElementById('root')
+);
