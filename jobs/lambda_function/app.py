@@ -49,8 +49,8 @@ def grouped_data(params):
 
 def periodic_data(params):
     convert_period = {
-        'day': seconds(1),
-        'week': seconds(7)
+        'day': days2seconds(1),
+        'week': days2seconds(7)
     }
     freq = convert_period[params['period']]
     jobs = get_jobs()
@@ -62,8 +62,8 @@ def periodic_data(params):
         filtered_jobs = jobs
 
     interval_index = pd.interval_range(
-        start=filtered_jobs['time'].iloc[-1] - seconds(30),  
-        periods=seconds(30) // freq + 1,
+        start=filtered_jobs['time'].iloc[0],  
+        periods=total_duration(filtered_jobs) // freq + 1,
         freq=freq,
         closed='right'
     )
@@ -74,5 +74,8 @@ def periodic_data(params):
         counts.to_numpy().tolist()
     ))
 
-def seconds(days=1):
+def days2seconds(days=1):
     return timedelta(days=days).total_seconds()
+
+def total_duration(df):
+    return df['time'].iloc[-1] - df['time'].iloc[0]

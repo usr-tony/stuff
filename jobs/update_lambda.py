@@ -2,7 +2,7 @@ import boto3
 import os
 
 os.system('''
-    AWS_PROFILE=personal
+    export AWS_PROFILE=personal
     cd lambda_function
     docker build . -t jobs
     aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 720957039806.dkr.ecr.ap-southeast-2.amazonaws.com

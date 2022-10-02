@@ -17,9 +17,8 @@ def main():
 
 
 def cache_to_s3():
-    initial_time = time() - 30 * 24 * 60 * 60
     jobs = pd.read_sql(f'''
-        SELECT id, title, company, nation, state, sector, industry, time FROM jobs WHERE time > {str(initial_time)}
+        SELECT id, title, company, nation, state, sector, industry, time FROM jobs
     ''', con=local_db)
     f = io.BytesIO()
     jobs.to_parquet(f, index=None)
