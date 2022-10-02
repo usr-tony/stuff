@@ -1,18 +1,40 @@
+import enum
 import pandas as pd
 import numpy as np
 import dask.dataframe as dd
 from dask.diagnostics import ProgressBar
-import sqlite3
+from time import time
+from datetime import timedelta
 
 
 con = 'sqlite:///seek/jobs.db'
 
 ProgressBar().register()
+start_time = time()
+total_words = 183000000
+chunksize = 999999
 
-def main():
-    words = dd.read_sql('words', con=con, index_col='id', meta={'word': np.str_})
-    idf = inverse_document_frequency(words).compute()
-    print(idf)
+def calculate_idf():
+    total_jobs = pd.read_sql('select count(id) from jobs', con=con,)['count(id)'][0]
+    results = pd.Series(dtype=int)
+    df_gen = pd.read_sql('select * from words', con=con, chunksize=chunksize)
+    for counter, df in enumerate(df_gen):
+        word_counts = df.groupby('word').count()['id']
+        results = results.add(word_counts, fill_value=0)
+        print_progress(counter + 1)
+    
+    idf = np.log(total_jobs / results)
+    return idf
+
+
+def condense_words():
+    pd.read_sql('select * from words', con=con, chunksize=chunksize):
+        
+
+
+def print_progress(counter):
+    print('progress:', counter * chunksize / total_words * 100)
+    print('time elapsed:', timedelta(seconds=time() - start_time))
 
 
 
@@ -53,7 +75,6 @@ def inverse_document_frequency(bag):
 
 def document_frequency(small_bag):
     return small_bag.groupby('word').sum()
-
 
 
 if __name__ == '__main__':
