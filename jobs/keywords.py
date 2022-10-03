@@ -1,81 +1,51 @@
-import enum
 import pandas as pd
 import numpy as np
-import dask.dataframe as dd
-from dask.diagnostics import ProgressBar
 from time import time
-from datetime import timedelta
-
+import spacy
+import sqlite3
 
 con = 'sqlite:///seek/jobs.db'
 
-ProgressBar().register()
 start_time = time()
-total_words = 183000000
-chunksize = 999999
 
-def calculate_idf():
-    total_jobs = pd.read_sql('select count(id) from jobs', con=con,)['count(id)'][0]
-    results = pd.Series(dtype=int)
-    df_gen = pd.read_sql('select * from words', con=con, chunksize=chunksize)
-    for counter, df in enumerate(df_gen):
-        word_counts = df.groupby('word').count()['id']
-        results = results.add(word_counts, fill_value=0)
-        print_progress(counter + 1)
+# def calculate_idf():
+#     total_jobs = pd.read_sql('select count(id) from jobs', con=con,)['count(id)'][0]
+#     results = pd.Series(dtype=int)
+#     df_gen = pd.read_sql('select * from words', con=con, chunksize=chunksize)
+#     for counter, df in enumerate(df_gen):
+#         word_counts = df.groupby('word').count()['id']
+#         results = results.add(word_counts, fill_value=0)
+#         print_progress(counter + 1)
     
-    idf = np.log(total_jobs / results)
-    return idf
+#     idf = np.log(total_jobs / results)
+#     return idf
 
 
-def condense_words():
-    pd.read_sql('select * from words', con=con, chunksize=chunksize):
-        
-
-
-def print_progress(counter):
-    print('progress:', counter * chunksize / total_words * 100)
-    print('time elapsed:', timedelta(seconds=time() - start_time))
-
-
-
-def words_to_db(df):
-    import spacy
-
-    model = spacy.load('en_core_web_trf', exclude=['ner', 'parser', 'transformer'])
-    counter = 0
-    total = len(df)
-    for id, details in df.to_numpy():
-        try:
+def tokenize_words():
+    model = spacy.load('en_core_web_sm', exclude=['tok2vec', 'ner', 'parser'])
+    print(model.pipeline)
+    con = sqlite3.connect('./seek/jobs.db')
+    total, = con.execute('select count(id) from details').fetchone()
+    counter = chunk_counter = 0
+    dfs = []
+    for id, details in con.execute('select * from details'):
+        if not type(details) == str:
             details = details.decode('utf-8')
-        except:
-            pass
 
-        doc = model(details.lower())
-        words = {}
-        for token in doc:
-            if not token.is_alpha:
-                continue
-
-            try:
-                words[token.lemma_] += 1
-            except:
-                words[token.lemma_] = 1
-
-        words_df = pd.DataFrame([(w, words[w]) for w in words], columns=['word', 'count'])
+        new_words = [w.lemma_ for w in model(details.lower()) if w.is_alpha]
+        words_df = pd.DataFrame({'word': new_words})
+        words_df['count'] = 1
+        words_df = words_df.groupby('word').sum()
         words_df['id'] = id
-        #words_df.to_sql('words', con='sqlite:///seek/jobs.db', if_exists='append', index=False)
+        dfs.append(words_df)
         counter += 1
-        print('progress:', round(counter / total * 100, 2), '%  ', end='\r')
-
-
-def inverse_document_frequency(bag):
-    result = len(bag) / bag.groupby('word').count()
-    return np.log(result)
-
-
-def document_frequency(small_bag):
-    return small_bag.groupby('word').sum()
+        print('progress:', round(counter / total * 100, 2), '%', 'time elapsed:', time() - start_time, '     ', end='\r')
+        if len(dfs) > 10 ** 4 or counter == total - 1:
+            chunk_counter += 1
+            df = pd.concat(dfs)
+            df.reset_index().to_parquet(f'./seek/words_chunk_{chunk_counter}.parquet')
+            dfs = []
 
 
 if __name__ == '__main__':
-    main()
+    tokenize_words()
