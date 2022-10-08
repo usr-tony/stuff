@@ -28,7 +28,7 @@ def scrape(job_id=None): # this id may not be relevant
             print(job_id, e)
             consec_errors += 1
         
-        if consec_errors > 500:
+        if consec_errors > 100:
             break
 
 
