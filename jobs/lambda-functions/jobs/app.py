@@ -1,24 +1,19 @@
 import json
-import boto3
-import io
 import pandas as pd
 from datetime import timedelta
 
+workdir = '/var/task/'
 
 def get_jobs():
-    s3 = boto3.client('s3')
-    f = io.BytesIO()
-    s3.download_fileobj(Fileobj=f, Key='jobs.parquet', Bucket='jobs--001')
-    f.seek(0)
-    return pd.read_parquet(f)
+    return pd.read_parquet(workdir + 'jobs.parquet')
 
 
-def main(event, context=None):
+def handler(event, context=None):
     params = json.loads(event['body'])
     status_code = 200
     body = get_data(params)
     if not body:
-        status_code = 400
+        status_code = 401
         body = 'invalid request parameters'
 
     return {

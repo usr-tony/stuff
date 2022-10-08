@@ -1,21 +1,52 @@
 import boto3
 import os
+from seek.keywords import generate_exports
+import pandas as pd
 
-os.system('''
-    export AWS_PROFILE=personal
-    cd lambda_function
-    docker build . -t jobs
-    aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 720957039806.dkr.ecr.ap-southeast-2.amazonaws.com
-    docker tag jobs 720957039806.dkr.ecr.ap-southeast-2.amazonaws.com/jobs:latest
-    docker push 720957039806.dkr.ecr.ap-southeast-2.amazonaws.com/jobs:latest
-    yes | docker system prune -a
-    aws lambda update-function-code --function-name jobs --image-uri 720957039806.dkr.ecr.ap-southeast-2.amazonaws.com/jobs:latest --no-cli-pager
-''')
 
-# this deletes all untagged images
-ecr = boto3.Session(profile_name='personal').client('ecr')
-images = ecr.list_images(repositoryName='jobs')
-images_to_delete = [row for row in images['imageIds'] if not row.get('imageTag')]
-response = ecr.batch_delete_image(imageIds=images_to_delete, repositoryName='jobs')
-print('images deleted', response['imageIds'])
-print('failures', response['failures'] or None)
+def rebuild_images(generate_keywords=False):
+    jobs = pd.read_sql(f'''
+        SELECT id, title, company, nation, state, sector, industry, time FROM jobs''', 
+        con='sqlite:///seek/jobs.db')
+    jobs.to_parquet('seek/jobs.parquet')
+
+    # rebuild jobs
+    os.system('cp seek/jobs.parquet lambda-functions/jobs/jobs.parquet')
+    rebuild_and_deploy('jobs')
+    os.remove('lambda-functions/jobs.parquet')
+
+    if not generate_keywords:
+        return
+    generate_exports()
+    # rebuild keywords
+    dest = 'lambda-functions/keywords/'
+    filenames = ['jobs.parquet', 'words-sm.parquet', 'words2id.parquet', 'idf.parquet']
+    for name in filenames:
+        os.system(f'cp seek/{name} {dest}')
+    rebuild_and_deploy('keywords')
+    (os.remove(dest + name) for name in filenames)
+    
+
+def rebuild_and_deploy(name):
+    os.system(f'''
+        export AWS_PROFILE=personal
+        cd lambda-functions/{name}
+        docker build . -t {name}
+        aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 720957039806.dkr.ecr.ap-southeast-2.amazonaws.com
+        docker tag {name} 720957039806.dkr.ecr.ap-southeast-2.amazonaws.com/{name}:latest
+        docker push 720957039806.dkr.ecr.ap-southeast-2.amazonaws.com/{name}:latest
+        aws lambda update-function-code --function-name {name} --image-uri 720957039806.dkr.ecr.ap-southeast-2.amazonaws.com/{name}:latest --no-cli-pager
+    ''')
+    ecr = boto3.Session(profile_name='personal').client('ecr')
+    images = ecr.list_images(repositoryName=name)
+    images_to_delete = [row for row in images['imageIds'] if not row.get('imageTag')]
+    response = ecr.batch_delete_image(imageIds=images_to_delete, repositoryName=name)
+    print('images deleted', response['imageIds'])
+    print('failures', response['failures'] or None)
+    os.system('yes | docker system prune -a')
+
+
+if __name__ == '__main__':
+    rebuild_and_deploy('keywords')
+    
+

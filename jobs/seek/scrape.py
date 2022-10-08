@@ -1,23 +1,26 @@
 import requests
 from bs4 import BeautifulSoup
-from time import time
+from time import time, sleep
 from .headers import headers
 import subprocess
 import json
 import re
 import pandas as pd
+import sqlite3
 import sys
 sys.path.append('../')
-import config
 
 
 def scrape(job_id=None): # this id may not be relevant
     if not job_id:
-        job_id = pd.read_sql('select max(id) from jobs', con=config.local)['max(id)'][0]
+        with sqlite3.connect('seek/jobs.db') as con:
+            job_id, = con.execute('select max(id) from jobs').fetchone()
+
 
     consec_errors = 0
     while True:
         job_id += 1
+        sleep(0.3)
         try:
             Page(job_id)
             consec_errors = 0
@@ -28,11 +31,9 @@ def scrape(job_id=None): # this id may not be relevant
         if consec_errors > 500:
             break
 
-    
 
 def Page(job_id):
-    base_url = 'https://www.seek.com.au/job/'
-    url = base_url + str(job_id)
+    url = f'https://www.seek.com.au/job/{job_id}'
     res = requests.get(url, headers=headers)
     soup = BeautifulSoup(res.text, 'lxml')
     tag, = soup.select('script[data-automation="server-state"]')
@@ -68,11 +69,10 @@ def Page(job_id):
     }
 
     out_df = pd.DataFrame([output])
-    out_df.to_sql('jobs', con=config.rds, if_exists='append', index=False)
     to_local_db(out_df.drop(columns=['details']), 'jobs')
     to_local_db(out_df[['id', 'details']], 'details')
     print(job_id, sector, industry)
         
 
 def to_local_db(df, table='jobs'):
-    return df.to_sql(table, con=config.local, index=False, if_exists='append')
+    return df.to_sql(table, con='sqlite:///seek/jobs.db', index=False, if_exists='append')
