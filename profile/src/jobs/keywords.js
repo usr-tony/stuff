@@ -40,7 +40,7 @@ async function renderChart(state, setLoading) {
     const data = await getData(state, setLoading)
     return Highcharts.chart(
         'keywords', 
-        bubbles(data, () => {}, 'Top keywords from filtered jobs', false)
+        bubbles(data, () => {}, 'Top keywords from filtered jobs, calculated using tf-idf', false)
     )
 }
 
