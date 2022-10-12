@@ -22,7 +22,6 @@ def scrape(job_id=None): # this id may not be relevant
             Page(job_id)
             consec_errors = 0
             jobs += 1 # delete when done
-            print('jobs collected:', jobs, end='\r')
         except ProxyError as e:
             print(job_id, e)
             print('td: a proxyerror has occured')
@@ -31,9 +30,11 @@ def scrape(job_id=None): # this id may not be relevant
             print(job_id, e, type(e))
             consec_errors += 1
 
+        print('jobs collected:', jobs, end='\r')
         if consec_errors > 100:
-            return
+            return print('jobs collected:', jobs)
 
+    
 def Page(job_id):
     res = requests.get(f'https://www.seek.com.au/job/{job_id}')
     soup = BeautifulSoup(res.text, 'lxml')

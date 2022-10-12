@@ -14,7 +14,7 @@ def redeploy(generate_keywords=False):
     os.system('cp seek/jobs.parquet lambda-functions/jobs/jobs.parquet')
     run_commands('jobs')
     os.remove('lambda-functions/jobs/jobs.parquet')
-    return
+    return ...
     if not generate_keywords:
         return
     generate_exports()
