@@ -1,14 +1,12 @@
 import requests
 from bs4 import BeautifulSoup
 from time import time, sleep
-from .headers import headers
 import subprocess
 import json
 import re
 import pandas as pd
 import sqlite3
-import sys
-sys.path.append('../')
+from requests.exceptions import ProxyError
 
 
 def scrape(job_id=None): # this id may not be relevant
@@ -16,25 +14,28 @@ def scrape(job_id=None): # this id may not be relevant
         with sqlite3.connect('seek/jobs.db') as con:
             job_id, = con.execute('select max(id) from jobs').fetchone()
 
-
     consec_errors = 0
+    jobs = 0
     while True:
         job_id += 1
-        sleep(0.3)
         try:
             Page(job_id)
             consec_errors = 0
-        except Exception as e:
+            jobs += 1 # delete when done
+            print('jobs collected:', jobs, end='\r')
+        except ProxyError as e:
             print(job_id, e)
+            print('td: a proxyerror has occured')
+            # implement handler for this error and switch out proxies or something
+        except Exception as e:
+            print(job_id, e, type(e))
             consec_errors += 1
-        
-        if consec_errors > 100:
-            break
 
+        if consec_errors > 100:
+            return
 
 def Page(job_id):
-    url = f'https://www.seek.com.au/job/{job_id}'
-    res = requests.get(url, headers=headers)
+    res = requests.get(f'https://www.seek.com.au/job/{job_id}')
     soup = BeautifulSoup(res.text, 'lxml')
     tag, = soup.select('script[data-automation="server-state"]')
     raw = tag.string
@@ -46,10 +47,6 @@ def Page(job_id):
     process = subprocess.run(['node', './seek/parse.js', f'({object})'], stdout=subprocess.PIPE)
     data = json.loads(process.stdout)
     job = data['jobdetails']['result']
-    sector = job.get('jobClassification') or job['classification']['description']
-    sector_id = job.get('jobClassificationId') or job['classification']['id']
-    industry = job.get('jobSubClassification') or job['subClassification']['description']
-    industry_id = job.get('jobSubClassificationId') or job['subClassification']['id']
     output = {
         'id': job_id,
         'title': job['title'],
@@ -59,19 +56,18 @@ def Page(job_id):
         'city': job['jobLocation'],
         'area': job['jobArea'],
         'suburb': job['locationHierarchy']['suburb'],
-        'sector_id': sector_id,
-        'sector': sector, 
-        'industry_id': industry_id,
-        'industry': industry,   
+        'sector_id': job.get('jobClassificationId') or job['classification']['id'],
+        'sector': job.get('jobClassification') or job['classification']['description'], 
+        'industry_id': job.get('jobSubClassificationId') or job['subClassification']['id'],
+        'industry': job.get('jobSubClassification') or job['subClassification']['description'],   
         'work_type': job['workType'],
         'details': job['jobAdDetails'],
         'time': time()
     }
-
     out_df = pd.DataFrame([output])
     to_local_db(out_df.drop(columns=['details']), 'jobs')
     to_local_db(out_df[['id', 'details']], 'details')
-    print(job_id, sector, industry)
+    print(job_id, output['sector'], output['industry'], output['title'])
         
 
 def to_local_db(df, table='jobs'):

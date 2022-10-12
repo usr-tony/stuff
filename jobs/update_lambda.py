@@ -4,17 +4,17 @@ from seek.keywords import generate_exports
 import pandas as pd
 
 
-def rebuild_images(generate_keywords=False):
-    jobs = pd.read_sql(f'''
+def redeploy(generate_keywords=False):
+    jobs = pd.read_sql('''
         SELECT id, title, company, nation, state, sector, industry, time FROM jobs''', 
         con='sqlite:///seek/jobs.db')
     jobs.to_parquet('seek/jobs.parquet')
 
     # rebuild jobs
     os.system('cp seek/jobs.parquet lambda-functions/jobs/jobs.parquet')
-    rebuild_and_deploy('jobs')
-    os.remove('lambda-functions/jobs.parquet')
-
+    run_commands('jobs')
+    os.remove('lambda-functions/jobs/jobs.parquet')
+    return
     if not generate_keywords:
         return
     generate_exports()
@@ -23,11 +23,11 @@ def rebuild_images(generate_keywords=False):
     filenames = ['jobs.parquet', 'words-sm.parquet', 'words2id.parquet', 'idf.parquet']
     for name in filenames:
         os.system(f'cp seek/{name} {dest}')
-    rebuild_and_deploy('keywords')
+    run_commands('keywords')
     (os.remove(dest + name) for name in filenames)
-    
 
-def rebuild_and_deploy(name):
+
+def run_commands(name):
     os.system(f'''
         export AWS_PROFILE=personal
         cd lambda-functions/{name}
@@ -40,13 +40,11 @@ def rebuild_and_deploy(name):
     ecr = boto3.Session(profile_name='personal').client('ecr')
     images = ecr.list_images(repositoryName=name)
     images_to_delete = [row for row in images['imageIds'] if not row.get('imageTag')]
-    response = ecr.batch_delete_image(imageIds=images_to_delete, repositoryName=name)
-    print('images deleted', response['imageIds'])
-    print('failures', response['failures'] or None)
+    ecr.batch_delete_image(imageIds=images_to_delete, repositoryName=name)
     os.system('yes | docker system prune -a')
 
 
 if __name__ == '__main__':
-    rebuild_and_deploy('keywords')
+    redeploy()
     
 
