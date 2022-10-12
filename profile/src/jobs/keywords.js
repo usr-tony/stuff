@@ -19,14 +19,14 @@ export default function({ useGlobalState }) {
         setLoading(true)
     }, [globalState.filters])
     if (loading) {
-        if (chart) {
+        try{
             chart.destroy()
-        }
+        } catch {}
         renderChart(globalState, setLoading).then(e => chart = e)
     }
     const noFilters = !Object.keys(globalState.filters).length
     return (
-        <div id='keywords' className='jobs-chart'>
+        <div id={getId(globalState)} className='jobs-chart'>
             {loading && !noFilters && <CircularProgress />}
             {noFilters && <div>no filters selected</div>}
         </div>
@@ -38,10 +38,15 @@ async function renderChart(state, setLoading) {
         return
     }
     const data = await getData(state, setLoading)
-    return Highcharts.chart(
-        'keywords', 
-        bubbles(data, () => {}, 'Top keywords from filtered jobs, calculated using tf-idf', false)
-    )
+    try {
+        return Highcharts.chart(
+            getId(state), 
+            bubbles(data, () => {}, 'Top keywords from filtered jobs, calculated using tf-idf', false)
+        )
+    } catch {
+        return null
+    }
+    
 }
 
 async function getData(state, setLoading) {
@@ -53,4 +58,8 @@ async function getData(state, setLoading) {
     const data = await response.json()
     setLoading(false)
     return data
+}
+
+function getId (state) {
+    return 'keywords' + JSON.stringify(state.filters)
 }

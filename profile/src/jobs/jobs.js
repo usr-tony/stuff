@@ -17,9 +17,9 @@ export default function ({ useGlobalState }) {
     const [state, setState] = useGlobalState
     const [loading, setLoading] = useState(true)
     if (loading) {
-        if (jobsChart) {
+        try{
             jobsChart.destroy()
-        }
+        } catch {}
         renderChart(state, setState, setLoading).then(chart => jobsChart = chart);
     }
     return (
@@ -66,9 +66,9 @@ async function renderChart(state, setState, setLoading) {
 
 function getJobsChartTitle(state) {
     if (state.by) {
-        return `jobs by ${state.by}`
+        return `Jobs posted by ${state.by}`
     }
-    const periodText = state.period == "day" ? "daily" : "weekly";
+    const periodText = state.period == "day" ? "Daily" : "Weekly";
     return `${periodText} job postings over time`;
 }
 
