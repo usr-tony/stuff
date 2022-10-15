@@ -58,10 +58,13 @@ async function renderChart(state, setState, setLoading) {
         setLoading(true)
     }
     const optionsGenerator = state.type == 'bubbles' ? bubbles : columns
-    return Highcharts.chart(
-        'jobs', 
-        optionsGenerator(data, clickEvent, title)
-    )
+    try {
+        return Highcharts.chart(
+            'jobs', 
+            optionsGenerator(data, clickEvent, title)
+        )
+    } catch {}
+    
 }
 
 function getJobsChartTitle(state) {
@@ -81,7 +84,7 @@ async function getData(state, setLoading, url=jobsUrl) {
     setLoading(false)
     let data = await response.json();
     if (state.type == 'columns') {
-        return columnarJobsData(data, state)
+        return columnarData(data, state)
     }
     return shortenNamesForBubbles(data)
 }
@@ -94,7 +97,7 @@ function shortenNamesForBubbles(data) {
     })
 }
 
-function columnarJobsData(data, state) {
+function columnarData(data, state) {
     let categories = data.map(row => {
         const ts = row[0] || ''
         return state.by ? ts : ts2date(ts)

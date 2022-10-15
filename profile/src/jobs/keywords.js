@@ -43,9 +43,7 @@ async function renderChart(state, setLoading) {
             getId(state), 
             bubbles(data, () => {}, 'Top keywords from filtered jobs, calculated using tf-idf', false)
         )
-    } catch {
-        return null
-    }
+    } catch {}
     
 }
 
