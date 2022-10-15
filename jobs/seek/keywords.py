@@ -10,23 +10,23 @@ start_time = time()
 
 
 def generate_exports():
-    with sqlite3.connect('jobs.db') as con:
+    with sqlite3.connect('seek/jobs.db') as con:
         total, = con.execute('select count(id) from details').fetchone()
     tokenize_words(total)
-    words = vaex.open('words_chunk_*.parquet')
+    words = vaex.open('seek/words_chunk_*.parquet')
     idf = calc_idf(total, words)
     words, words2id = reduce_size(idf, words)
-    idf.export('idf.parquet')
-    words.export('words-sm.parquet')
-    words2id.export('words2id.parquet')
-    os.system("find ./ -name words_chunk_*.parquet -delete")
+    idf.export('seek/idf.parquet')
+    words.export('seek/words-sm.parquet')
+    words2id.export('seek/words2id.parquet')
+    os.system("find ./seek -name 'words_chunk_*.parquet' -delete")
 
 
 def tokenize_words(total):
     model = spacy.load('en_core_web_sm', exclude=['tok2vec', 'ner', 'parser'])
     counter = chunk_counter = 0
     dfs = []
-    con = sqlite3.connect('jobs.db')
+    con = sqlite3.connect('seek/jobs.db')
     for id, details in con.execute('select * from details'):
         if not type(details) == str:
             details = details.decode('utf-8')

@@ -4,7 +4,12 @@ from seek.keywords import generate_exports
 import pandas as pd
 
 
-def redeploy(generate_keywords=False):
+def deploy_all():
+    deploy_jobs()
+    deploy_keywords()
+    
+
+def deploy_jobs():
     jobs = pd.read_sql('''
         SELECT id, title, company, nation, state, sector, industry, time FROM jobs''', 
         con='sqlite:///seek/jobs.db')
@@ -14,11 +19,12 @@ def redeploy(generate_keywords=False):
     os.system('cp seek/jobs.parquet lambda-functions/jobs/jobs.parquet')
     run_commands('jobs')
     os.remove('lambda-functions/jobs/jobs.parquet')
-    return ...
-    if not generate_keywords:
-        return
+
+    
+def deploy_keywords():
     generate_exports()
     # rebuild keywords
+    print('keyword export files generated')
     dest = 'lambda-functions/keywords/'
     filenames = ['jobs.parquet', 'words-sm.parquet', 'words2id.parquet', 'idf.parquet']
     for name in filenames:
@@ -45,6 +51,6 @@ def run_commands(name):
 
 
 if __name__ == '__main__':
-    redeploy()
+    deploy_all()
     
 

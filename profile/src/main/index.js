@@ -73,13 +73,12 @@ export default function App() {
                                     sx={{ justifyContent: "center" }}
                                 >
                                     <Grid item>
-                                        <Jobs />
                                         <Autotrader />
                                         <Skills />
+                                        <Certs />
                                     </Grid>
                                     <Grid item>
                                         <Experience />
-                                        <Certs />
                                         <Education />
                                     </Grid>
                                 </Grid>
