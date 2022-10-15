@@ -1,5 +1,5 @@
 import { CircularProgress } from "@mui/material"
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useMemo } from "react"
 import { jobsUrl } from "./jobs"
 import { bubbles } from './charts'
 import Highcharts from 'highcharts'
@@ -11,53 +11,60 @@ darkTheme(Highcharts);
 
 let keywordsUrl = jobsUrl + '/keywords'
 
-var chart = null
 export default function({ useGlobalState }) {
-    const [globalState, _] = useGlobalState
-    const [loading, setLoading] = useState(true)
+    const [globals, _] = useGlobalState
+    const [state, setState] = useState({currentChart: null})
+    let key = JSON.stringify(globals.filters)
+    useMemo(() => {
+        let data = state?.[key]?.data
+        if (!data && key != '{}') {
+            getData(key, setState)
+        }
+    }, [globals.filters])
     useEffect(() => {
-        setLoading(true)
-    }, [globalState.filters])
-    if (loading) {
-        try{
-            chart.destroy()
-        } catch {}
-        renderChart(globalState, setLoading).then(e => chart = e)
-    }
-    const noFilters = !Object.keys(globalState.filters).length
+        const data = state?.[key]?.data
+        renderChart(data)
+    }, [key, state?.[key]])
     return (
-        <div id={getId(globalState)} className='jobs-chart'>
-            {loading && !noFilters && <CircularProgress />}
-            {noFilters && <div>no filters selected</div>}
+        <div id='keywords' className='jobs-chart'>
+            {state?.[key]?.loading && <CircularProgress />}
+            {key == '{}' && <div>No filters selected</div> }
         </div>
     )
 }
 
-async function renderChart(state, setLoading) {
-    if (!Object.keys(state.filters).length) {
+var chart = null
+async function renderChart(data) {
+    try {
+        chart.destroy()
+    } catch {}
+    if (!data) {
         return
     }
-    const data = await getData(state, setLoading)
-    try {
-        return Highcharts.chart(
-            getId(state), 
-            bubbles(data, () => {}, 'Top keywords from filtered jobs, calculated using tf-idf', false)
-        )
-    } catch {}
-    
+    chart = Highcharts.chart(
+        'keywords', 
+        bubbles(data, () => {}, 'Keywords calculated using tf-idf', false)
+    )
 }
 
-async function getData(state, setLoading) {
+async function getData(key, setState) {
+    setState((state) => 
+        setKeyValue(key, state, { loading: true })
+    )
     const response = await fetch(keywordsUrl, {
         method: "POST",
         mode: "cors",
-        body: JSON.stringify(state.filters),
+        body: key,
     })
     const data = await response.json()
-    setLoading(false)
-    return data
+    setState((state) => 
+        setKeyValue(key, state, { loading: false, data })
+    )
 }
 
-function getId (state) {
-    return 'keywords' + JSON.stringify(state.filters)
+function setKeyValue(key, state, value) {
+    if (state?.[key]?.data?.length) {
+        return state
+    }
+    return { ...state, [key]: value }
 }
