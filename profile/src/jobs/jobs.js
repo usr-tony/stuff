@@ -3,7 +3,7 @@ import Highcharts from "highcharts";
 import HighchartsMore from "highcharts/highcharts-more";
 import darkTheme from "highcharts/themes/brand-dark.src";
 import "babel-polyfill";
-import { CircularProgress, Alert } from "@mui/material";
+import { CircularProgress, Alert, Paper } from "@mui/material";
 import { columns, bubbles } from './charts'
 import SideSection from './side-section'
 HighchartsMore(Highcharts);
@@ -38,7 +38,9 @@ export default function ({ useGlobalState }) {
                     </Alert>
                 }
             </div>
-            <SideSection state={state} setLoading={setLoading} setState={setState} />
+            <Paper variant='outlined' sx={{ height: '30rem', width: '100%' }}>
+                <SideSection state={state} setLoading={setLoading} setState={setState} />
+            </Paper>
         </div>
     );
 }
