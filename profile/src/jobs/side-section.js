@@ -1,36 +1,54 @@
 import React from "react";
-import { Button } from "@mui/material";
+import { Button, Typography } from "@mui/material";
+
 
 const buttonStyle = {
     width: 50
 }
 const selectedButtonStyle = {
-    buttonStyle,
-    backgroundColor: 'green',
+    ...buttonStyle,
+    backgroundColor: '#90EE90',
+    '&:hover': {
+        backgroundColor: '#70CC70'
+    }
 }
 
+const textStyle = {
+    marginLeft: '0.5rem',
+    fontSize: '0.8rem'
+}
 
 export default (props) => {
     return (
-        <div>
-            grouped data:
+        <>
             <div>
-                <ByButton {...props} by='company' />
-                <ByButton {...props} by='sector' />
-            </div>
-            periodic data:
-            <div>
-                <PeriodButton {...props} period='day' />
-                <PeriodButton {...props} period='week' />
-            </div>
-            chart type:
-            <div>
-                <ChartTypeButton {...props} type='columns' />
-                <ChartTypeButton {...props} type='bubbles' />
+                <ButtonGroup text='Group jobs by:'>
+                    <ByButton {...props} by='company' />
+                    <ByButton {...props} by='sector' />
+                </ButtonGroup>
+                <ButtonGroup text='Show job trends by:'>
+                    <PeriodButton {...props} period='day' />
+                    <PeriodButton {...props} period='week' />
+                </ButtonGroup>
+                <ButtonGroup text='Select chart type'>
+                    <ChartTypeButton {...props} type='columns' />
+                    <ChartTypeButton {...props} type='bubbles' />
+                </ButtonGroup>
             </div>
             <DisplayFilters {...props} />
-        </div>
+        </>
     );
+}
+
+function ButtonGroup({ text, children }) {
+    return (
+        <div style={{ marginBottom: '1rem' }}>
+            <Typography sx={textStyle} marginBottom='0'>
+                {text}
+            </Typography>
+            {children}
+        </div>
+    )
 }
 
 export function ByButton({ by, setLoading, state, setState }) {
@@ -95,11 +113,11 @@ export function ChartTypeButton({ type, state, setState, setLoading }) {
 export function DisplayFilters(props) {
     const filters = props.state.filters
     if (!filters || !Object.keys(filters).length) {
-        return <div></div>
+        return <></>
     }
     return (
         <>
-            <div>filters:</div>
+            <Typography sx={textStyle}>filters:</Typography>
             {GenerateFilters(filters)}
         </>
     )
@@ -108,7 +126,7 @@ export function DisplayFilters(props) {
 function GenerateFilters(filters) {
     const elements = []
     for (let key in filters) {
-        elements.push(<div key={key}>{key}: {filters[key]}</div>)
+        elements.push(<Typography sx={textStyle} key={key}>{key}: {filters[key]}</Typography>)
     }
     return elements
 } 
