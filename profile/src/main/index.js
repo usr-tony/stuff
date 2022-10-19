@@ -22,34 +22,13 @@ const theme = createTheme({
     },
 });
 const recaptcha_key = "6LcVpQggAAAAALaMRxlxtXsMAmjvsej8-N8aW2U_";
-const remToPx = getComputedStyle(document.documentElement).fontSize
-const totalHeightPx = parseInt(remToPx) * 85
-let pages = 3.3;
-if (window.innerWidth > 1010) {
-    pages = totalHeightPx / getViewportHeight()
-}
 
-// gets the width viewport
-function getViewportHeight() {
-    if (self.innerHeight) {
-        return self.innerHeight;
-    }
-
-    if (document.documentElement && document.documentElement.clientHeight) {
-        return document.documentElement.clientHeight;
-    }
-
-    if (document.body) {
-        return document.body.clientHeight;
-    }
-}
-
-export default function App() {
+export default () => {
     return (
         <ThemeProvider theme={theme}>
             <div class="container-fluid">
                 <GoogleReCaptchaProvider reCaptchaKey={recaptcha_key}>
-                    <Parallax pages={pages}>
+                    <Parallax pages={getPages()}>
                         <ParallaxLayer
                             offset={0}
                             speed={2.5}
@@ -89,4 +68,26 @@ export default function App() {
             </div>
         </ThemeProvider>
     );
+}
+
+function getPages() {
+    const remToPx = getComputedStyle(document.documentElement).fontSize
+    const totalHeightPx = parseInt(remToPx) * 85
+    if (window.innerWidth > 1010) {
+        return totalHeightPx / getViewportHeight()
+    }
+    return 3.3
+}
+
+// gets the width viewport
+function getViewportHeight() {
+    if (self.innerHeight) {
+        return self.innerHeight;
+    }
+    if (document.documentElement && document.documentElement.clientHeight) {
+        return document.documentElement.clientHeight;
+    }
+    if (document.body) {
+        return document.body.clientHeight;
+    }
 }

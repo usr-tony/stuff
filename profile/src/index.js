@@ -8,7 +8,7 @@ const App = () => (
     <BrowserRouter>
         <Routes>
             {newRoute('/', lazy(() => import('./main')))}
-            {newRoute('/trader', lazy(() => import('./trader')))}
+            {/* {newRoute('/trader', lazy(() => import('./trader')))} */}
             {newRoute('/jobs', lazy(() => import('./jobs')))}
         </Routes>
     </BrowserRouter>

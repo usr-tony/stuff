@@ -1,6 +1,6 @@
 import boto3
 import os
-from seek.keywords import generate_exports
+import seek
 import pandas as pd
 
 
@@ -10,6 +10,7 @@ def deploy_all():
     
 
 def deploy_jobs():
+    # generates data
     jobs = pd.read_sql('''
         SELECT id, title, company, nation, state, sector, industry, time FROM jobs''', 
         con='sqlite:///seek/jobs.db')
@@ -22,13 +23,12 @@ def deploy_jobs():
 
     
 def deploy_keywords():
-    generate_exports()
+    seek.keywords.generate_exports()
     # rebuild keywords
     print('keyword export files generated')
     dest = 'lambda-functions/keywords/'
     filenames = ['jobs.parquet', 'words-sm.parquet', 'words2id.parquet', 'idf.parquet']
-    for name in filenames:
-        os.system(f'cp seek/{name} {dest}')
+    (os.system(f'cp seek/{name} {dest}') for name in filenames)
     run_commands('keywords')
     (os.remove(dest + name) for name in filenames)
 
@@ -51,6 +51,6 @@ def run_commands(name):
 
 
 if __name__ == '__main__':
-    deploy_all()
+    deploy_keywords()
     
 
