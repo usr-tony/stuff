@@ -1,7 +1,7 @@
 from seek import scrape
 from time import sleep
 from datetime import datetime
-from seek.keywords import generate_exports
+from update_lambda_functions import deploy_all
 
 
 def main():

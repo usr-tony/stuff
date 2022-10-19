@@ -1,37 +1,44 @@
 import pandas as pd
 import json
+import vaex
 
 workdir = '/var/task/'
 
 def handler(event, context=None):
     body = json.loads(event['body'])
-    words, words2id, idf, jobs = get_files()
+    words, words2id, jobs = vaex_read_files()
     for key in body:
         jobs = jobs[jobs[key] == body[key]]
-    ids = jobs['id']
-    id_filter = ids.to_frame().set_index('id')
-    filtered_words = words.merge(id_filter, on='id', how='inner').drop(columns='id')
-    freq = filtered_words.groupby('word_id').agg({'count': 'sum'})
-    freq = freq.merge(words2id, on='word_id')
-    freq = freq.set_index('word')['count']
-    idf = idf.set_index('word')['count']
-    df_idf = (freq * idf).dropna()
-    body = (df_idf
-        .sort_values(ascending=False)[:50]
+    
+    freq = (words
+        .join(jobs[['id']], on='id', how='inner')
+        .groupby('word_id')
+        .agg({'count': 'sum'})
+        .join(words2id, on='word_id')
+        .to_pandas_df()
+        .set_index('word')
+        ['count']
+    )
+    idf = pd.read_parquet(workdir + 'idf.parquet').set_index('word')['count']
+    df_idf = ((idf * freq)
+        .dropna()
+        .sort_values(ascending=False)
+        [: 50]
         .to_frame()
         .reset_index()
         .to_numpy()
-        .tolist())
+        .tolist()
+    )
     return {
         'headers': {
             'Access-Control-Allow-Origin': '*',
         },
         'statusCode': 200, 
-        'body': json.dumps(body)
+        'body': json.dumps(df_idf)
     }
 
 
-def get_files():
-    filenames = ['words-sm.parquet', 'words2id.parquet', 'idf.parquet',  'jobs.parquet']
-    return [pd.read_parquet(workdir + name) for name in filenames]
+def vaex_read_files():
+    filenames = ['words-sm.parquet', 'words2id.parquet',  'jobs.parquet']
+    return [vaex.open(workdir + name) for name in filenames]
     

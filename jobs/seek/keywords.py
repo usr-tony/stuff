@@ -1,12 +1,15 @@
 import pandas as pd
 import numpy as np
-from time import time
+from datetime import datetime
 import spacy
 import sqlite3
 import vaex
 import os
+import bs4
+import warnings
 
-start_time = time()
+
+warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 
 def generate_exports():
@@ -23,6 +26,7 @@ def generate_exports():
 
 
 def tokenize_words(total):
+    print('time started: ', datetime.now().isoformat())
     model = spacy.load('en_core_web_sm', exclude=['tok2vec', 'ner', 'parser'])
     counter = chunk_counter = 0
     dfs = []
@@ -30,19 +34,21 @@ def tokenize_words(total):
     for id, details in con.execute('select * from details'):
         if not type(details) == str:
             details = details.decode('utf-8')
+
+        details = bs4.BeautifulSoup(details, 'lxml').text
         new_words = [w.lemma_ for w in model(details.lower()) if w.is_alpha]
-        words_df = pd.DataFrame({'word': new_words})
-        words_df['count'] = 1
-        words_df = words_df.groupby('word').sum()
+        words_df = (pd.DataFrame({'word': new_words})
+            .groupby('word')
+            .count())
         words_df['id'] = id
         dfs.append(words_df)
         counter += 1
-        print('progress:', round(counter / total * 100, 2), '%', 'time elapsed:', time() - start_time, '     ', end='\r')
+        print('progress:', round(counter / total * 100, 2), '%', end='\r')
         if len(dfs) > 10 ** 4 or counter == total - 1:
             chunk_counter += 1
             (pd.concat(dfs)
                 .reset_index()
-                .to_parquet(f'words_chunk_{chunk_counter}.parquet'))
+                .to_parquet(f'seek/words_chunk_{chunk_counter}.parquet'))
             dfs = []
     con.close()
 
