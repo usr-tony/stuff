@@ -1,6 +1,0 @@
-env
-*.db
-__pycache__
-.DS_Store
-.ipynb_checkpoints*
-data
