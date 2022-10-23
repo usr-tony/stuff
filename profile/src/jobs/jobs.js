@@ -34,7 +34,7 @@ export default function ({ useGlobalState }) {
                         severity='info' 
                         sx={{fontSize: '1rem'}}
                     >
-                        click on the graph to filter
+                        click on the graph to drill down and show keywords
                     </Alert>
                 }
             </div>

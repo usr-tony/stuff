@@ -25,6 +25,9 @@ export default (props) => {
                 <ButtonGroup text='Group jobs by:'>
                     <ByButton {...props} by='company' />
                     <ByButton {...props} by='sector' />
+                    <Typography sx={textStyle} >
+                        Then click on the graph to drill down
+                    </Typography>
                 </ButtonGroup>
                 <ButtonGroup text='Show job trends by:'>
                     <PeriodButton {...props} period='day' />
@@ -117,7 +120,7 @@ export function DisplayFilters(props) {
     }
     return (
         <>
-            <Typography sx={textStyle}>filters:</Typography>
+            <Typography sx={textStyle}>Filters applied:</Typography>
             {GenerateFilters(filters)}
         </>
     )
