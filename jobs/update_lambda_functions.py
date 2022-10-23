@@ -25,10 +25,11 @@ def deploy_jobs():
 def deploy_keywords():
     #generate_exports()
     dest = 'lambda-functions/keywords/'
+    os.system('cp seek/jobs.parquet lambda-functions/keywords/jobs.parquet')
     filenames = ['jobs.parquet', 'words-sm.parquet', 'words2id.parquet', 'idf.parquet']
-    (os.system(f'cp seek/{name} {dest}') for name in filenames)
+    [os.system(f'cp seek/{name} {dest}') for name in filenames]
     run_commands('keywords')
-    (os.remove(dest + name) for name in filenames)
+    [os.remove(dest + name) for name in filenames]
 
 
 def run_commands(name):

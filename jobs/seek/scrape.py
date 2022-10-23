@@ -6,6 +6,8 @@ import json
 import re
 import pandas as pd
 import sqlite3
+import base64
+import boto3
 
 
 def scrape():
@@ -20,7 +22,11 @@ def scrape():
     while True:
         job_id += 1
         try:
-            extract_page(job_id)
+            html = get_html(job_id, True)
+            out_df = extract_page(job_id, html)
+            to_local_db(out_df.drop(columns=['details']), 'jobs')
+            to_local_db(out_df[['id', 'details']], 'details')
+            print(out_df)
             consec_errors = 0
             jobs_collected += 1 
         except Exception as e:
@@ -31,10 +37,16 @@ def scrape():
         if consec_errors > 100:
             return print(f'{jobs_collected=}')
 
+
+def get_html(job_id, from_lambda=False):
+    if not from_lambda:
+        return requests.get(f'https://www.seek.com.au/job/{job_id}').text
     
-def extract_page(job_id):
-    res = requests.get(f'https://www.seek.com.au/job/{job_id}')
-    raw = (BeautifulSoup(res.text, 'lxml')
+    return html_from_lambda(job_id)
+
+
+def extract_page(job_id, html):
+    raw = (BeautifulSoup(html, 'lxml')
         .select_one('script[data-automation="server-state"]')
         .string)
     start = 'window.SEEK_REDUX_DATA ='
@@ -43,12 +55,9 @@ def extract_page(job_id):
     end_index = re.search(end, raw).start()
     object = raw[start_index: end_index]
     process = subprocess.run(['node', './seek/parse.js', f'({object})'], stdout=subprocess.PIPE)
-    data = json.loads(process.stdout)['jobdetails']['result']
-    out_df = pd.DataFrame([generate_output(data, job_id)])
-    to_local_db(out_df.drop(columns=['details']), 'jobs')
-    to_local_db(out_df[['id', 'details']], 'details')
-    print(out_df)
-
+    parsed_object = json.loads(process.stdout)['jobdetails']['result']
+    return pd.DataFrame([generate_output(parsed_object, job_id)])
+    
 
 def generate_output(job, id):
     return {
@@ -66,8 +75,28 @@ def generate_output(job, id):
         'industry': job.get('jobSubClassification') or job['subClassification']['description'],   
         'work_type': job['workType'],
         'details': job['jobAdDetails'],
-        'time': time()
+        'time': time(),
+        'posted': job['jobPostedTime'] or job['listingDate']
     }
+
 
 def to_local_db(df, table='jobs'):
     return df.to_sql(table, con='sqlite:///seek/jobs.db', index=False, if_exists='append')
+
+
+def html_from_lambda(job_id):
+    data = json.loads(boto3
+        .Session(profile_name='personal')
+        .client('lambda')
+        .invoke(
+            FunctionName='seek-scraper', 
+            Payload=json.dumps({'job_id': job_id}).encode()
+        )['Payload']
+        .read()
+        .decode('utf-8')
+    )
+    return base64.b64decode(data).decode('utf-8')
+
+
+if __name__ == '__main__':
+    print(extract_page(58887346))
