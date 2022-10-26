@@ -23,7 +23,7 @@ def deploy_jobs():
 
     
 def deploy_keywords():
-    #generate_exports()
+    generate_exports()
     dest = 'lambda-functions/keywords/'
     os.system('cp seek/jobs.parquet lambda-functions/keywords/jobs.parquet')
     filenames = ['jobs.parquet', 'words-sm.parquet', 'words2id.parquet', 'idf.parquet']
@@ -50,6 +50,6 @@ def run_commands(name):
 
 
 if __name__ == '__main__':
-    deploy_keywords()
+    deploy_jobs()
     
 

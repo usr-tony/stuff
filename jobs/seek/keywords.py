@@ -42,7 +42,7 @@ def tokenize_words(total):
             chunk_counter += 1
             (pd.concat(dfs)
                 .reset_index()
-                .to_parquet(f'words_chunk_{chunk_counter}.parquet'))
+                .to_parquet(f'seek/words_chunk_{chunk_counter}.parquet'))
             dfs = []
     con.close()
 

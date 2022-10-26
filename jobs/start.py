@@ -8,7 +8,7 @@ def main():
     while True:
         scrape.scrape()
         print(datetime.now().isoformat())
-        sleep(600)
+        sleep(60 * 60 * 12)
 
 
 if __name__ == '__main__':
