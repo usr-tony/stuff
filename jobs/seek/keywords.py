@@ -5,6 +5,7 @@ import spacy
 import sqlite3
 import vaex
 import os
+import bs4
 
 start_time = time()
 
@@ -30,7 +31,9 @@ def tokenize_words(total):
     for id, details in con.execute('select * from details'):
         if not type(details) == str:
             details = details.decode('utf-8')
-        new_words = [w.lemma_ for w in model(details.lower()) if w.is_alpha]
+
+        text = bs4.BeautifulSoup(details, 'lxml').text.lower()
+        new_words = [w.lemma_ for w in model(text) if w.is_alpha]
         words_df = pd.DataFrame({'word': new_words})
         words_df['count'] = 1
         words_df = words_df.groupby('word').sum()
@@ -59,5 +62,5 @@ def reduce_size(idf, df):
     df['count'] = df['count'].astype('int16')
     words2id = idf.drop(columns='count')
     words2id['word_id'] = np.arange(len(words2id), dtype=np.int32)
-    words = df.join(words2id, on='word', rprefix='word_')
-    return words.drop(columns=['word_word', 'word']), words2id
+    words = df.join(words2id, on='word', rprefix='r_')
+    return words.drop(columns=['r_word', 'word']), words2id

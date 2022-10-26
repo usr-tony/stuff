@@ -50,6 +50,6 @@ def run_commands(name):
 
 
 if __name__ == '__main__':
-    deploy_jobs()
+    deploy_keywords()
     
 
