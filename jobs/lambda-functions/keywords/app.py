@@ -15,8 +15,8 @@ def handler(event, context=None):
     freq = freq.merge(words2id, on='word_id')
     freq = freq.set_index('word')['count']
     idf = idf.set_index('word')['count']
-    df_idf = (freq * idf).dropna()
-    body = (df_idf
+    tf_idf = (freq * idf).dropna()
+    body = (tf_idf
         .sort_values(ascending=False)[:50]
         .to_frame()
         .reset_index()

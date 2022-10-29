@@ -7,7 +7,7 @@ COPY [ \
     "words2id.parquet", \
     "idf.parquet", \
     "jobs.parquet", \
-    "." \
+    "./" \
 ]
 RUN pip install -r requirements.txt --target .
 CMD ["app.handler"]
