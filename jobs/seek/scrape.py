@@ -8,10 +8,12 @@ import pandas as pd
 import sqlite3
 import base64
 import boto3
+from os import path
 
+file_dir = path.dirname(__file__)
 
 def scrape():
-    with sqlite3.connect('seek/jobs.db') as con:
+    with sqlite3.connect(file_dir + '/jobs.db') as con:
         try:
             job_id, = con.execute('select max(id) from jobs').fetchone()
         except:
@@ -54,7 +56,7 @@ def extract_page(job_id, html):
     start_index = raw.index(start) + len(start)
     end_index = re.search(end, raw).start()
     object = raw[start_index: end_index]
-    process = subprocess.run(['node', './seek/parse.js', f'({object})'], stdout=subprocess.PIPE)
+    process = subprocess.run(['node', file_dir + '/parse.js', f'({object})'], stdout=subprocess.PIPE)
     parsed_object = json.loads(process.stdout)['jobdetails']['result']
     return pd.DataFrame([generate_output(parsed_object, job_id)])
     
@@ -81,7 +83,7 @@ def generate_output(job, id):
 
 
 def to_local_db(df, table='jobs'):
-    return df.to_sql(table, con='sqlite:///seek/jobs.db', index=False, if_exists='append')
+    return df.to_sql(table, con=f'sqlite:///{file_dir}/jobs.db', index=False, if_exists='append')
 
 
 def html_from_lambda(job_id):
