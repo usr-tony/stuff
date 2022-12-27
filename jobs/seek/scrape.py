@@ -96,16 +96,17 @@ def to_local_db(df, table='jobs'):
 
 
 def html_from_lambda(job_id):
-    data = json.loads(boto3
-                      .Session(profile_name='personal')
-                      .client('lambda')
-                      .invoke(
-                          FunctionName='seek-scraper',
-                          Payload=json.dumps({'job_id': job_id}).encode()
-                      )['Payload']
-                      .read()
-                      .decode('utf-8')
-                      )
+    data = json.loads(
+        boto3
+        .Session(profile_name='personal')
+        .client('lambda')
+        .invoke(
+            FunctionName='seek-scraper',
+            Payload=json.dumps({'job_id': job_id}).encode()
+        )['Payload']
+        .read()
+        .decode('utf-8')
+    )
     return base64.b64decode(data).decode('utf-8')
 
 
