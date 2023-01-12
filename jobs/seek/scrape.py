@@ -18,14 +18,12 @@ file_dir = path.dirname(__file__)
 
 def scrape():
     with sqlite3.connect(file_dir + '/jobs.db') as con:
-        print('con opened')
         try:
             job_id, = con.execute('select max(id) from jobs').fetchone()
         except:
             job_id = input(
                 'enter a job id, for example https://seek.com.au/job/[job id]: ')
 
-    print('max id')
     consec_errors = 0
     jobs_collected = 0
     while True:
