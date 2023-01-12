@@ -1,12 +1,11 @@
-from seek import scrape
+from seek.scrape import scrape
 from time import sleep
 from datetime import datetime
-from seek.keywords import generate_exports
 
 
 def main():
     while True:
-        scrape.scrape()
+        scrape()
         print(datetime.now().isoformat())
         sleep(60 * 60 * 12)
 

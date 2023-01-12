@@ -9,6 +9,7 @@ import sqlite3
 import base64
 import boto3
 from os import path
+import vaex
 
 
 pd.options.display.max_columns = 99
@@ -17,12 +18,14 @@ file_dir = path.dirname(__file__)
 
 def scrape():
     with sqlite3.connect(file_dir + '/jobs.db') as con:
+        print('con opened')
         try:
             job_id, = con.execute('select max(id) from jobs').fetchone()
         except:
             job_id = input(
                 'enter a job id, for example https://seek.com.au/job/[job id]: ')
 
+    print('max id')
     consec_errors = 0
     jobs_collected = 0
     while True:
@@ -31,8 +34,11 @@ def scrape():
             html = get_html(job_id, True)
             out_df = extract_page(job_id, html)
             to_local_db(out_df.drop(columns=['details']), 'jobs')
-            to_local_db(out_df[['id', 'details']], 'details')
-            print(out_df)
+            to_local_db(
+                out_df[['id', 'details']].rename(columns={'id': 'job_id'}),
+                'details'
+            )
+            print(vaex.from_pandas(out_df))
             consec_errors = 0
             jobs_collected += 1
         except Exception as e:
