@@ -1,0 +1,15 @@
+env/
+*.db
+**/resume/
+*.log
+*.html
+__pycache__/
+.DS_store
+geckodriver*
+profiles
+sql.py
+config.py
+*.hdf5
+*.csv
+*.parquet
+.env

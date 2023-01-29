@@ -1,0 +1,13 @@
+FROM public.ecr.aws/lambda/python:3.9.2022.09.27.12-x86_64
+WORKDIR /var/task
+COPY [ \
+    "app.py", \
+    "requirements.txt", \
+    "words-sm.parquet", \
+    "words2id.parquet", \
+    "idf.parquet", \
+    "jobs.parquet", \
+    "./" \
+]
+RUN pip install -r requirements.txt --target .
+CMD ["app.handler"]

@@ -1,0 +1,11 @@
+. ~/.nvm/nvm.sh
+nvm use 18
+node --version
+npm run build
+cd ./dist
+git init
+git checkout -b main
+git add -A
+git commit -am 'rebuild'
+git remote add origin git@github.com:usr-tony/usr-tony.github.io.git
+git push -f origin HEAD 

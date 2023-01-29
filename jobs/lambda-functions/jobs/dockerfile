@@ -1,0 +1,8 @@
+FROM public.ecr.aws/lambda/python:latest
+
+WORKDIR /var/task
+
+COPY ["app.py", "requirements.txt", "jobs.parquet", "."]
+RUN pip3 install -r requirements.txt --target .
+
+CMD ["app.handler"]
