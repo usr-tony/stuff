@@ -1,27 +1,27 @@
-import requests
-from bs4 import BeautifulSoup
 from time import time
-import subprocess
 import json
-import re
 import pandas as pd
-import base64
 import boto3
 from os import path
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
+import numpy as np
+from .upload_file import upload_file
 
 
 file_dir = path.dirname(__file__)
-pool_size = 100
+pool_size = 900
+jobs_per_function = 30 # must be a factor of pool_size
 
 
 def scrape():
-    job_id = find_largest_job_id()
-    while jobs_list := scrape_multiple(job_id):
+    largest_id = find_largest_job_id()
+    while jobs_list := use_node_scraper(largest_id):
         jobs = pd.concat(jobs_list)
-        print(jobs)
+        print(jobs.iloc[:, 1:6])
         write2db(jobs)
-        job_id += pool_size
+        largest_id += pool_size
+    
+    upload_file()
 
 
 def find_largest_job_id():
@@ -35,15 +35,45 @@ def find_largest_job_id():
         return input('enter a job id e.g. (seek.com.au/job/{job_id}')
 
 
-def scrape_multiple(starting_job_id):
-    with ProcessPoolExecutor(max_workers=10) as executor:
-        scraped_results = executor.map(
-            scrape_job,
-            [starting_job_id + i + 1 for i in range(pool_size)]
-        )
-    return list(
-        filter(lambda x: type(x) == pd.DataFrame, scraped_results)
+def use_node_scraper(largest_id):
+    job_id = largest_id + 1
+    processes = pool_size // jobs_per_function
+    job_ids = np.split(
+        np.arange(job_id, pool_size + job_id),
+        processes
     )
+    with ThreadPoolExecutor(max_workers=processes) as executor:
+        results = executor.map(node_scraper, job_ids)
+
+    return [j for jobs in results for j in jobs]
+
+
+def node_scraper(job_ids=[61373164, 61373165], debug=False):
+    if type(job_ids) != list:
+        job_ids = job_ids.tolist()
+
+    res = (boto3
+        .Session(profile_name='personal')
+        .client('lambda')
+        .invoke(
+            FunctionName='seek-scraper-node',
+            Payload=json.dumps({'job_ids': job_ids})
+        ))
+    data = json.loads(res['Payload'].read())
+    if debug:
+        print(json.dumps(data))
+
+    results = []
+    for job, job_id in zip(data, job_ids):
+        if not job:
+            continue
+        
+        try:
+            results.append(generate_output(job, job_id))
+        except Exception as e:
+            print('start exception:', e, job_ids, res, '\n', data)
+
+    return results
 
 
 def write2db(jobs):
@@ -54,73 +84,40 @@ def write2db(jobs):
     )
 
 
-def scrape_job(job_id):
-    try:
-        html = get_html(job_id)
-        data = extract_page(html)
-        return generate_output(data, job_id)
-    except Exception as e:
-        return e
-
-
-def extract_page(html):
-    raw = (BeautifulSoup(html, 'lxml')
-           .select_one('script[data-automation="server-state"]')
-           .string)
-    start = 'window.SEEK_REDUX_DATA ='
-    end = r';\s+window.SEEK_APP_CONFIG ='
-    start_index = raw.index(start) + len(start)
-    end_index = re.search(end, raw).start()
-    object = raw[start_index: end_index]
-    process = subprocess.run(
-        ['node', file_dir + '/parse.js', f'({object})'],
-        stdout=subprocess.PIPE
-    )
-    parsed_object = json.loads(process.stdout)
-    return parsed_object
-
-
 def generate_output(data, id):
     job = data['jobdetails']['result']['job']
-    classification = job['tracking']['classificationInfo']
+    classification = job['tracking']['classificationInfo'] 
     location = job['tracking']['locationInfo']
-    return pd.DataFrame([{
-        'id': id,
-        'title': job['title'],
-        'company': job['advertiser']['name'],
-        'nation': None,
-        'state': None,
-        'city': location['location'],
-        'area': location['area'],
-        'suburb': None,
-        'sector_id': classification['classificationId'],
-        'sector': classification['classification'],
-        'industry_id': classification['subClassificationId'],
-        'industry': classification['subClassification'],
-        'work_type': job['workTypes']['label'],
-        'details': job['content'],
-        'time': time(),
-        'posted': job['listedAt']['shortLabel']
-    }])
+    area = location['area']
+    if not area:
+        try:
+            area = job['location']['label']
+        except:
+            ...
+    try:
+        salary = job['salary']['label']
+    except (ValueError, TypeError):
+        salary = None
+    return pd.DataFrame([dict(
+        id=id,
+        title=job['title'],
+        company=job['advertiser']['name'],
+        salary=salary,
+        city=location['location'],
+        area=area,
+        sector_id=classification['classificationId'],
+        sector=classification['classification'],
+        industry_id=classification['subClassificationId'],
+        industry=classification['subClassification'],
+        work_type=job['workTypes']['label'],
+        details=job['content'],
+        time=time(),
+        posted=job['listedAt']['shortLabel']
+    )])
 
 
 def to_local_db(df, table='jobs'):
     return df.to_sql(table, con=f'sqlite:///{file_dir}/jobs.db', index=False, if_exists='append')
 
 
-def get_html(job_id, from_lamda_proxy=True):
-    if not from_lamda_proxy:
-        return requests.get(f'https://www.seek.com.au/job/{job_id}').text
-        
-    data = json.loads(
-        boto3
-        .Session(profile_name='personal')
-        .client('lambda')
-        .invoke(
-            FunctionName='seek-scraper',
-            Payload=json.dumps({'job_id': job_id}).encode()
-        )['Payload']
-        .read()
-        .decode('utf-8')
-    )
-    return base64.b64decode(data).decode('utf-8')
+

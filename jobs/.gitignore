@@ -1,5 +1,5 @@
 env/
-*.db
+*.db*
 **/resume/
 *.log
 *.html
@@ -13,3 +13,8 @@ config.py
 *.csv
 *.parquet
 .env
+upload_file.py
+node_modules/
+/test-results/
+/playwright-report/
+/playwright/.cache/
