@@ -5,10 +5,10 @@ import boto3
 from os import path
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
-from .upload_file import upload_file
 
 
 file_dir = path.dirname(__file__)
+con = f'sqlite:///{file_dir}/jobs.db'
 pool_size = 900
 jobs_per_function = 30 # must be a factor of pool_size
 
@@ -20,14 +20,12 @@ def scrape():
         print(jobs.iloc[:, 1:6])
         write2db(jobs)
         largest_id += pool_size
-    
-    upload_file()
 
 
 def find_largest_job_id():
     rows = pd.read_sql(
         'select max(id) from jobs',
-        con=f'sqlite:///{file_dir}/jobs.db'
+        con=con
     )
     if len(rows):
         return int(rows.iloc[0, 0])
@@ -53,7 +51,7 @@ def node_scraper(job_ids=[61373164, 61373165], debug=False):
         job_ids = job_ids.tolist()
 
     res = (boto3
-        .Session(profile_name='personal')
+        .Session()
         .client('lambda')
         .invoke(
             FunctionName='seek-scraper-node',
@@ -117,7 +115,7 @@ def generate_output(data, id):
 
 
 def to_local_db(df, table='jobs'):
-    return df.to_sql(table, con=f'sqlite:///{file_dir}/jobs.db', index=False, if_exists='append')
+    return df.to_sql(table, con=con, index=False, if_exists='append')
 
 
 

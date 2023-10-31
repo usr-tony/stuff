@@ -2,7 +2,6 @@
 from seek.scrape import scrape
 from time import sleep
 from datetime import datetime
-import os
 
 
 def main():
