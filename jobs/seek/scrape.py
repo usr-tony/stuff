@@ -29,8 +29,8 @@ def find_largest_job_id():
     )
     if len(rows):
         return int(rows.iloc[0, 0])
-    else:
-        return input('enter a job id e.g. (seek.com.au/job/{job_id}')
+    
+    return input('enter a job id e.g. (seek.com.au/job/{job_id}')
 
 
 def use_node_scraper(largest_id):
