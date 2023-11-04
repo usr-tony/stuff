@@ -8,24 +8,27 @@ import numpy as np
 
 
 file_dir = path.dirname(__file__)
-con = f'sqlite:///{file_dir}/jobs.db'
-pool_size = 900
-jobs_per_function = 30 # must be a factor of pool_size
+CON = f'sqlite:///{file_dir}/jobs.db'
+POOL_SIZE = 900
+JOBS_PER_FUNCTION = 30 # must be a factor of pool_size
 
 
 def scrape():
     largest_id = find_largest_job_id()
-    while jobs_list := use_node_scraper(largest_id):
+    for i in range(20): # tries 900 * 20 job ids after the largest
+        jobs_list = use_node_scraper(largest_id + POOL_SIZE * i)
+        if not jobs_list:
+            print(f'no jobs found for ids between {largest_id + POOL_SIZE * i} and {largest_id + POOL_SIZE * (i + 1)}')
+            continue
+
         jobs = pd.concat(jobs_list)
-        print(jobs.iloc[:, 1:6])
         write2db(jobs)
-        largest_id += pool_size
 
 
 def find_largest_job_id():
     rows = pd.read_sql(
         'select max(id) from jobs',
-        con=con
+        con=CON
     )
     if len(rows):
         return int(rows.iloc[0, 0])
@@ -35,15 +38,16 @@ def find_largest_job_id():
 
 def use_node_scraper(largest_id):
     job_id = largest_id + 1
-    processes = pool_size // jobs_per_function
+    processes = POOL_SIZE // JOBS_PER_FUNCTION
     job_ids = np.split(
-        np.arange(job_id, pool_size + job_id),
+        np.arange(job_id, POOL_SIZE + job_id),
         processes
     )
     with ThreadPoolExecutor(max_workers=processes) as executor:
         results = executor.map(node_scraper, job_ids)
 
-    return [j for jobs in results for j in jobs]
+    results = [j for jobs in results for j in jobs]
+    return results
 
 
 def node_scraper(job_ids=[61373164, 61373165], debug=False):
@@ -57,6 +61,7 @@ def node_scraper(job_ids=[61373164, 61373165], debug=False):
             FunctionName='seek-scraper-node',
             Payload=json.dumps({'job_ids': job_ids})
         ))
+    
     data = json.loads(res['Payload'].read())
     if debug:
         print(json.dumps(data))
@@ -75,6 +80,7 @@ def node_scraper(job_ids=[61373164, 61373165], debug=False):
 
 
 def write2db(jobs):
+    print(jobs.iloc[:, 1: 6])
     to_local_db(jobs.drop(columns=['details']), 'jobs')
     to_local_db(
         jobs[['id', 'details']].rename(columns={'id': 'job_id'}),
@@ -91,11 +97,13 @@ def generate_output(data, id):
         try:
             area = job['location']['label']
         except:
-            ...
+            pass
+
     try:
         salary = job['salary']['label']
     except (ValueError, TypeError):
         salary = None
+
     return pd.DataFrame([dict(
         id=id,
         title=job['title'],
@@ -115,7 +123,7 @@ def generate_output(data, id):
 
 
 def to_local_db(df, table='jobs'):
-    return df.to_sql(table, con=con, index=False, if_exists='append')
+    return df.to_sql(table, con=CON, index=False, if_exists='append')
 
 
 
