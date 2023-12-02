@@ -14,15 +14,20 @@ SEEK_DB_PATH = './seek/jobs.db'
 
 
 def main():
+    last_uploaded = datetime.now()
     while True:
         scrape()
-        upload_s3()
+        if datetime.now() - last_uploaded > timedelta(days=1):
+            last_uploaded = datetime.now()
+            upload_s3()
+
         ptime('uploaded to s3, sleeping')
         sleep(SLEEP_SECONDS)
 
 
 def upload_s3(file_name=SEEK_DB_PATH):
     compressed_file = compress_file(file_name)
+    ptime(f'uploading {compressed_file} to s3')
     boto3.client('s3').upload_file(compressed_file, AWS_BUCKET_NAME, compressed_file)
     os.remove(compressed_file)
 
@@ -37,8 +42,8 @@ def compress_file(file_name=SEEK_DB_PATH):
     return compressed_file
 
 
-def ptime(*msg):
-    print(datetime.now().isoformat(), *msg)
+def ptime(*msgs):
+    print(datetime.now().isoformat(), *msgs)
 
 
 if __name__ == '__main__':
