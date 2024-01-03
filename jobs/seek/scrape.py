@@ -74,7 +74,7 @@ def node_scraper(job_ids=[61373164, 61373165], debug=False):
         try:
             results.append(generate_output(job, job_id))
         except Exception as e:
-            print('start exception:', e, job_ids, res, '\n', data)
+            print(e)
 
     return results
 
@@ -92,13 +92,6 @@ def generate_output(data, id):
     job = data['jobdetails']['result']['job']
     classification = job['tracking']['classificationInfo'] 
     location = job['tracking']['locationInfo']
-    area = location['area']
-    if not area:
-        try:
-            area = job['location']['label']
-        except:
-            pass
-
     try:
         salary = job['salary']['label']
     except (ValueError, TypeError):
@@ -110,7 +103,7 @@ def generate_output(data, id):
         company=job['advertiser']['name'],
         salary=salary,
         city=location['location'],
-        area=area,
+        area=get_area(job),
         sector_id=classification['classificationId'],
         sector=classification['classification'],
         industry_id=classification['subClassificationId'],
@@ -118,10 +111,23 @@ def generate_output(data, id):
         work_type=job['workTypes']['label'],
         details=job['content'],
         time=time(),
-        posted=job['listedAt']['shortLabel']
+        posted=get_posted(job)
     )])
 
 
+def get_posted(job: dict):
+    listed_at = job['listedAt']
+    return listed_at.get('shortLabel') or listed_at.get('label')
+    
+
+def get_area(job: dict):
+    location = job['tracking']['locationInfo']
+    try:
+        return location['area'] or job['location']['label']
+    except KeyError:
+        return None
+
+    
 def to_local_db(df, table='jobs'):
     return df.to_sql(table, con=CON, index=False, if_exists='append')
 
