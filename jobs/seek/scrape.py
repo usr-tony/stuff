@@ -5,17 +5,20 @@ import boto3
 from os import path
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
+import traceback
 
 
 file_dir = path.dirname(__file__)
 CON = f'sqlite:///{file_dir}/jobs.db'
 POOL_SIZE = 900
 JOBS_PER_FUNCTION = 30 # must be a factor of pool_size
+NODE = '~/.nvm/versions/node/v23.5.0/bin/node'
 
+pd.options.display.width = 200
 
 def scrape():
     largest_id = find_largest_job_id()
-    for i in range(20): # tries 900 * 20 job ids after the largest
+    for i in range(1):
         jobs_list = use_node_scraper(largest_id + POOL_SIZE * i)
         if not jobs_list:
             print(f'no jobs found for ids between {largest_id + POOL_SIZE * i} and {largest_id + POOL_SIZE * (i + 1)}')
@@ -46,11 +49,10 @@ def use_node_scraper(largest_id):
     with ThreadPoolExecutor(max_workers=processes) as executor:
         results = executor.map(node_scraper, job_ids)
 
-    results = [j for jobs in results for j in jobs]
-    return results
+    return [j for jobs in results for j in jobs]
 
 
-def node_scraper(job_ids=[61373164, 61373165], debug=False):
+def node_scraper(job_ids=[61373164, 61373165], debug=True):
     if type(job_ids) != list:
         job_ids = job_ids.tolist()
 
@@ -73,14 +75,15 @@ def node_scraper(job_ids=[61373164, 61373165], debug=False):
         
         try:
             results.append(generate_output(job, job_id))
-        except Exception as e:
-            print(e)
+        except Exception:
+            print(job_id, job)
+            traceback.print_exc()
 
     return results
 
 
 def write2db(jobs):
-    print(jobs.iloc[:, 1: 6])
+    print(jobs.drop(columns=['details', 'id', 'time', 'sector_id', 'industry_id']))
     to_local_db(jobs.drop(columns=['details']), 'jobs')
     to_local_db(
         jobs[['id', 'details']].rename(columns={'id': 'job_id'}),

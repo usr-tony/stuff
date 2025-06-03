@@ -8,10 +8,10 @@ import os
 from pathlib import Path
 
 
-SLEEP_SECONDS = timedelta(hours=6).seconds
+SLEEP_SECONDS = timedelta(hours=12).seconds
 AWS_BUCKET_NAME = 'jobs--001'
 SEEK_DB_PATH = './seek/jobs.db'
-UPLOAD_PERIOD: timedelta = timedelta(days=3)
+UPLOAD_PERIOD: timedelta = timedelta(days=1)
 
 
 def main():
@@ -19,26 +19,54 @@ def main():
     while True:
         scrape()
         if datetime.now() - last_uploaded > UPLOAD_PERIOD:
-            last_uploaded = datetime.now()
-            upload_s3()
-
+            create_kaggle_dset('jobs', ['seek/jobs.db'], version=True) 
         ptime('sleeping')
         sleep(SLEEP_SECONDS)
 
 
-def upload_s3(file_name=SEEK_DB_PATH):
-    compressed_file_path = compress_file(file_name)
-    ptime(f'uploading {compressed_file_path} to s3')
-    boto3.client('s3').upload_file(
-        compressed_file_path, 
-        AWS_BUCKET_NAME, 
-        Path(compressed_file_path).parts[-1],
-        ExtraArgs=dict(
-            StorageClass='STANDARD' # infrequent access tier
-        )
-    )
-    os.remove(compressed_file_path)
-    ptime('uploaded to s3')
+def create_kaggle_dset(name: str, files: list[str], description="v5.0", version=False):
+    """
+    Parameters
+    ----
+        name : str
+            only a to z and - chars
+        files: list[str|Path] - cannot handle files in subdirectories
+    """
+    from pathlib import Path
+    import json
+    import os
+    import re
+
+    KAGGLE_USERNAME = os.getenv('KAGGLE_USERNAME')
+    KAGGLE_KEY = os.getenv('KAGGLE_KEY')
+
+    assert re.match(r"^[\w\-]*$", name), 'invalid name, must be alphanumeric or "-"'
+    path = Path(name)
+    path.mkdir(exist_ok=True)
+    meta = {
+        "title": name,
+        "id": f"{KAGGLE_USERNAME}/{name}",
+        "licenses": [{"name": "CC0-1.0"}],
+        "description": description,
+    }
+    with open(path / "dataset-metadata.json", "w") as f:
+        f.write(json.dumps(meta))
+
+    for file in files:
+        cmd = f"gzip -c {file} > {path}/{file}.gz"
+        os.system(cmd)
+
+    cmd = f"kaggle d create {path}"
+    if version:
+        cmd = f"kaggle d version -p {path} -m update"
+
+    os.system(f"""
+        export {KAGGLE_KEY=}
+        export {KAGGLE_USERNAME=}
+        {cmd}
+        rm -rf {path}
+    """)
+
 
 
 def compress_file(file_name=SEEK_DB_PATH):
